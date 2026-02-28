@@ -10,6 +10,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
@@ -25,16 +30,21 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 👈 línea agregada
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers("/login", "/usuarios/registerUser").permitAll()
+                        // Rutas públicas — especificar el método HTTP
+                        .requestMatchers(HttpMethod.POST, "/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/usuarios/registerUser").permitAll()
 
+                        // EMPLEADO y ADMIN — vinilos
                         .requestMatchers(HttpMethod.GET,    "/vinilos/**").hasAnyRole("EMPLEADO", "ADMIN")
                         .requestMatchers(HttpMethod.POST,   "/vinilos/**").hasAnyRole("EMPLEADO", "ADMIN")
                         .requestMatchers(HttpMethod.PUT,    "/vinilos/**").hasAnyRole("EMPLEADO", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/vinilos/**").hasAnyRole("EMPLEADO", "ADMIN")
 
+                        // Solo ADMIN — usuarios
                         .requestMatchers(HttpMethod.GET,    "/usuarios/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT,    "/usuarios/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/usuarios/**").hasRole("ADMIN")
@@ -46,8 +56,22 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // 👇 método nuevo agregado
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-}n
+}

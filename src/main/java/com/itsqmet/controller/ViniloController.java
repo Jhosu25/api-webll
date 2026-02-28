@@ -8,6 +8,7 @@
 
     @RestController
     @RequestMapping("/vinilos")
+    @CrossOrigin(origins = "http://localhost:4200")
     public class ViniloController {
 
         @Autowired
